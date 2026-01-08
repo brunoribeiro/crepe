@@ -4,6 +4,17 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'minor'
 
 permissions:
   contents: write
@@ -33,32 +44,53 @@ jobs:
           VERSION=${LATEST_TAG#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
 
-          # Get the commit message
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          echo "Commit message: $COMMIT_MSG"
-
-          # Determine version bump based on commit message
+          # Determine version bump type
           SHOULD_RELEASE="true"
 
-          if echo "$COMMIT_MSG" | grep -qE "^(feat|feature)(\(.+\))?!:|BREAKING[ -]CHANGE"; then
-            # Major version bump for breaking changes
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-            echo "Breaking change detected: bumping major version"
-          elif echo "$COMMIT_MSG" | grep -qE "^(feat|feature)(\(.+\))?:"; then
-            # Minor version bump for features
-            MINOR=$((MINOR + 1))
-            PATCH=0
-            echo "Feature detected: bumping minor version"
-          elif echo "$COMMIT_MSG" | grep -qE "^fix(\(.+\))?:"; then
-            # Patch version bump for fixes
-            PATCH=$((PATCH + 1))
-            echo "Fix detected: bumping patch version"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger - use input parameter
+            BUMP_TYPE="${{ github.event.inputs.version_bump }}"
+            echo "Manual release triggered: $BUMP_TYPE"
+
+            case "$BUMP_TYPE" in
+              major)
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              minor)
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              patch)
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
           else
-            # No release for chore, docs, style, refactor, test, etc.
-            echo "No version bump needed for this commit type"
-            SHOULD_RELEASE="false"
+            # Automatic trigger - use commit message
+            COMMIT_MSG=$(git log -1 --pretty=%B)
+            echo "Commit message: $COMMIT_MSG"
+
+            if echo "$COMMIT_MSG" | grep -qE "^(feat|feature)(\(.+\))?!:|BREAKING[ -]CHANGE"; then
+              # Major version bump for breaking changes
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              echo "Breaking change detected: bumping major version"
+            elif echo "$COMMIT_MSG" | grep -qE "^(feat|feature)(\(.+\))?:"; then
+              # Minor version bump for features
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              echo "Feature detected: bumping minor version"
+            elif echo "$COMMIT_MSG" | grep -qE "^fix(\(.+\))?:"; then
+              # Patch version bump for fixes
+              PATCH=$((PATCH + 1))
+              echo "Fix detected: bumping patch version"
+            else
+              # No release for chore, docs, style, refactor, test, etc.
+              echo "No version bump needed for this commit type"
+              SHOULD_RELEASE="false"
+            fi
           fi
 
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"

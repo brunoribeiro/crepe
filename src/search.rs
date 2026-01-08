@@ -98,21 +98,19 @@ impl<'a> FileDiscovery<'a> {
 
         // Check exclude patterns first
         for exclude in &self.config.exclude_patterns {
-            if let Ok(pattern) = Pattern::new(exclude) {
-                if pattern.matches(filename) || pattern.matches(path.to_str().unwrap_or("")) {
+            if let Ok(pattern) = Pattern::new(exclude)
+                && (pattern.matches(filename) || pattern.matches(path.to_str().unwrap_or(""))) {
                     return false;
                 }
-            }
         }
 
         // If there are include patterns, file must match at least one
         if !self.config.include_patterns.is_empty() {
             for include in &self.config.include_patterns {
-                if let Ok(pattern) = Pattern::new(include) {
-                    if pattern.matches(filename) || pattern.matches(path.to_str().unwrap_or("")) {
+                if let Ok(pattern) = Pattern::new(include)
+                    && (pattern.matches(filename) || pattern.matches(path.to_str().unwrap_or(""))) {
                         return true;
                     }
-                }
             }
             return false;
         }

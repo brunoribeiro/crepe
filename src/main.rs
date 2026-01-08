@@ -18,7 +18,7 @@ fn main() {
     let cli = Cli::parse();
 
     // Convert to config
-    let config = match cli.to_config() {
+    let config = match cli.into_config() {
         Ok(c) => c,
         Err(e) => {
             eprintln!("Error: {}", e);

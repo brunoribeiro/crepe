@@ -115,7 +115,7 @@ pub struct Cli {
 
 impl Cli {
     /// Convert CLI arguments to Config
-    pub fn to_config(self) -> Result<Config, String> {
+    pub fn into_config(self) -> Result<Config, String> {
         let mut config = Config::default();
 
         // Collect patterns

@@ -18,7 +18,7 @@ fn main() {
     let cli = Cli::parse();
 
     // Convert to config
-    let config = match cli.to_config() {
+    let config = match cli.into_config() {
         Ok(c) => c,
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -72,11 +72,9 @@ fn main() {
         // Process files in parallel, but collect results to maintain order
         let results: Vec<_> = files
             .par_iter()
-            .map(|file| {
-                match processor.process_file(file) {
-                    Ok(_) => None,
-                    Err(e) => Some((file.clone(), e)),
-                }
+            .map(|file| match processor.process_file(file) {
+                Ok(_) => None,
+                Err(e) => Some((file.clone(), e)),
             })
             .collect();
 

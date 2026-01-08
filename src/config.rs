@@ -1,4 +1,3 @@
-use colored::Color;
 use std::path::PathBuf;
 
 /// Configuration for the crepe text highlighter

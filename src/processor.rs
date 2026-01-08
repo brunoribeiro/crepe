@@ -14,12 +14,6 @@ pub struct Processor {
     highlighter: Highlighter,
 }
 
-/// Result of processing a file
-pub struct ProcessResult {
-    pub match_count: usize,
-    pub lines_output: usize,
-}
-
 impl Processor {
     /// Create a new Processor
     pub fn new(config: Config) -> Result<Self, String> {
@@ -34,34 +28,29 @@ impl Processor {
     }
 
     /// Process a file
-    pub fn process_file(&self, path: &Path) -> Result<ProcessResult, String> {
-        let file = File::open(path)
-            .map_err(|e| format!("Error opening {}: {}", path.display(), e))?;
+    pub fn process_file(&self, path: &Path) -> Result<(), String> {
+        let file =
+            File::open(path).map_err(|e| format!("Error opening {}: {}", path.display(), e))?;
 
         let reader = BufReader::new(file);
         self.process_reader(reader, Some(path))
     }
 
     /// Process stdin
-    pub fn process_stdin(&self) -> Result<ProcessResult, String> {
+    pub fn process_stdin(&self) -> Result<(), String> {
         let stdin = std::io::stdin();
         let reader = stdin.lock();
         self.process_reader(reader, None)
     }
 
     /// Process a reader (file or stdin)
-    fn process_reader<R: BufRead>(
-        &self,
-        reader: R,
-        filepath: Option<&Path>,
-    ) -> Result<ProcessResult, String> {
+    fn process_reader<R: BufRead>(&self, reader: R, filepath: Option<&Path>) -> Result<(), String> {
         if self.config.count_only {
             return self.process_count_only(reader);
         }
 
         let mut line_num = 0;
         let mut match_count = 0;
-        let mut lines_output = 0;
         let mut context_before_buffer: VecDeque<(usize, String)> =
             VecDeque::with_capacity(self.config.context_before);
         let mut context_after_remaining = 0;
@@ -85,25 +74,24 @@ impl Processor {
                 match_count += 1;
 
                 // Check max count
-                if let Some(max) = self.config.max_count {
-                    if match_count > max {
-                        break;
-                    }
+                if let Some(max) = self.config.max_count
+                    && match_count > max
+                {
+                    break;
                 }
 
                 // Output context before (if any)
                 if self.config.context_before > 0 {
                     // Add separator if needed
-                    if let Some(last) = last_match_line {
-                        if line_num - last > 1 && !context_before_buffer.is_empty() {
-                            println!("--");
-                            lines_output += 1;
-                        }
+                    if let Some(last) = last_match_line
+                        && line_num - last > 1
+                        && !context_before_buffer.is_empty()
+                    {
+                        println!("--");
                     }
 
                     for (ctx_line_num, ctx_line) in context_before_buffer.drain(..) {
                         self.output_line(&ctx_line, ctx_line_num, &[], filepath, false);
-                        lines_output += 1;
                     }
                 }
 
@@ -111,20 +99,18 @@ impl Processor {
                 if self.config.only_matching {
                     let extracted = self.highlighter.extract_matches(&line, &matches);
                     for matched_part in extracted {
-                        if self.config.show_filename {
-                            if let Some(path) = filepath {
-                                print!("{}:", path.display());
-                            }
+                        if self.config.show_filename
+                            && let Some(path) = filepath
+                        {
+                            print!("{}:", path.display());
                         }
                         if self.config.show_line_numbers {
                             print!("{}:", line_num);
                         }
                         println!("{}", matched_part);
-                        lines_output += 1;
                     }
                 } else {
                     self.output_line(&line, line_num, &matches, filepath, true);
-                    lines_output += 1;
                 }
 
                 last_match_line = Some(line_num);
@@ -132,7 +118,6 @@ impl Processor {
             } else if context_after_remaining > 0 {
                 // Output context after
                 self.output_line(&line, line_num, &[], filepath, false);
-                lines_output += 1;
                 context_after_remaining -= 1;
             } else if self.config.context_before > 0 {
                 // Buffer for potential context before
@@ -143,14 +128,11 @@ impl Processor {
             }
         }
 
-        Ok(ProcessResult {
-            match_count,
-            lines_output,
-        })
+        Ok(())
     }
 
     /// Process in count-only mode
-    fn process_count_only<R: BufRead>(&self, reader: R) -> Result<ProcessResult, String> {
+    fn process_count_only<R: BufRead>(&self, reader: R) -> Result<(), String> {
         let mut count = 0;
 
         for line_result in reader.lines() {
@@ -166,20 +148,17 @@ impl Processor {
             if should_count {
                 count += 1;
 
-                if let Some(max) = self.config.max_count {
-                    if count >= max {
-                        break;
-                    }
+                if let Some(max) = self.config.max_count
+                    && count >= max
+                {
+                    break;
                 }
             }
         }
 
         println!("{}", count);
 
-        Ok(ProcessResult {
-            match_count: count,
-            lines_output: 1,
-        })
+        Ok(())
     }
 
     /// Output a single line with optional highlighting
@@ -203,10 +182,10 @@ impl Processor {
             ":"
         };
 
-        if self.config.show_filename {
-            if let Some(path) = filepath {
-                print!("{}{}", path.display(), separator);
-            }
+        if self.config.show_filename
+            && let Some(path) = filepath
+        {
+            print!("{}{}", path.display(), separator);
         }
 
         if self.config.show_line_numbers {

@@ -45,11 +45,21 @@ pub struct Cli {
     pub count: bool,
 
     /// Lines of context before matches
-    #[arg(short = 'B', long = "before-context", value_name = "NUM", default_value = "0")]
+    #[arg(
+        short = 'B',
+        long = "before-context",
+        value_name = "NUM",
+        default_value = "0"
+    )]
     pub before_context: usize,
 
     /// Lines of context after matches
-    #[arg(short = 'A', long = "after-context", value_name = "NUM", default_value = "0")]
+    #[arg(
+        short = 'A',
+        long = "after-context",
+        value_name = "NUM",
+        default_value = "0"
+    )]
     pub after_context: usize,
 
     /// Lines of context before and after matches
@@ -115,7 +125,7 @@ pub struct Cli {
 
 impl Cli {
     /// Convert CLI arguments to Config
-    pub fn to_config(self) -> Result<Config, String> {
+    pub fn into_config(self) -> Result<Config, String> {
         let mut config = Config::default();
 
         // Collect patterns
@@ -177,7 +187,12 @@ impl Cli {
                 "always" => ColorMode::Always,
                 "never" => ColorMode::Never,
                 "auto" => ColorMode::Auto,
-                _ => return Err(format!("Invalid --color value: {}. Use auto, always, or never.", color_when)),
+                _ => {
+                    return Err(format!(
+                        "Invalid --color value: {}. Use auto, always, or never.",
+                        color_when
+                    ));
+                }
             };
         }
 

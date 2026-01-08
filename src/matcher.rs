@@ -63,11 +63,6 @@ impl Matcher {
     pub fn has_match(&self, text: &str) -> bool {
         self.regexes.iter().any(|regex| regex.is_match(text))
     }
-
-    /// Get the number of patterns
-    pub fn pattern_count(&self) -> usize {
-        self.regexes.len()
-    }
 }
 
 #[cfg(test)]

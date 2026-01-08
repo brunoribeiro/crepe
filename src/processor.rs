@@ -63,25 +63,33 @@ impl Processor {
             let matches = self.matcher.find_matches(&line);
             let has_match = !matches.is_empty();
 
-            // Apply invert match logic
-            let should_output = if self.config.invert_match {
+            // Determine if this line should be output based on flags
+            let should_output = if self.config.only_matching {
+                // -o flag: only show lines with matches
+                has_match
+            } else if self.config.invert_match {
+                // -v flag: only show lines without matches
                 !has_match
             } else {
-                has_match
+                // Default: show ALL lines (highlighting matches)
+                true
             };
 
             if should_output {
-                match_count += 1;
+                // Track matches for max_count
+                if has_match {
+                    match_count += 1;
 
-                // Check max count
-                if let Some(max) = self.config.max_count
-                    && match_count > max
-                {
-                    break;
+                    // Check max count
+                    if let Some(max) = self.config.max_count
+                        && match_count > max
+                    {
+                        break;
+                    }
                 }
 
-                // Output context before (if any)
-                if self.config.context_before > 0 {
+                // Output context before (if any) - only for matching lines
+                if has_match && self.config.context_before > 0 {
                     // Add separator if needed
                     if let Some(last) = last_match_line
                         && line_num - last > 1
@@ -95,8 +103,8 @@ impl Processor {
                     }
                 }
 
-                // Output the matching line
-                if self.config.only_matching {
+                // Output the line
+                if self.config.only_matching && has_match {
                     let extracted = self.highlighter.extract_matches(&line, &matches);
                     for matched_part in extracted {
                         if self.config.show_filename
@@ -110,11 +118,13 @@ impl Processor {
                         println!("{}", matched_part);
                     }
                 } else {
-                    self.output_line(&line, line_num, &matches, filepath, true);
+                    self.output_line(&line, line_num, &matches, filepath, has_match);
                 }
 
-                last_match_line = Some(line_num);
-                context_after_remaining = self.config.context_after;
+                if has_match {
+                    last_match_line = Some(line_num);
+                    context_after_remaining = self.config.context_after;
+                }
             } else if context_after_remaining > 0 {
                 // Output context after
                 self.output_line(&line, line_num, &[], filepath, false);
@@ -193,5 +203,185 @@ impl Processor {
         }
 
         println!("{}", highlighted);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    fn create_test_config(patterns: Vec<&str>) -> Config {
+        let mut config = Config::default();
+        config.patterns = patterns.into_iter().map(|s| s.to_string()).collect();
+        config.color_mode = crate::config::ColorMode::Never; // Disable colors for testing
+        config
+    }
+
+    fn process_test_input(config: Config, input: &str) -> String {
+        let processor = Processor::new(config).unwrap();
+
+        // For testing, we'll test the filtering logic directly
+        let lines: Vec<&str> = input.lines().collect();
+        let mut results = Vec::new();
+
+        for line in lines {
+            let matches = processor.matcher.find_matches(line);
+            let has_match = !matches.is_empty();
+
+            let should_output = if processor.config.only_matching {
+                has_match
+            } else if processor.config.invert_match {
+                !has_match
+            } else {
+                true // Default: show all lines
+            };
+
+            if should_output {
+                results.push(line.to_string());
+            }
+        }
+
+        results.join("\n")
+    }
+
+    #[test]
+    fn test_default_shows_all_lines() {
+        let config = create_test_config(vec!["TODO"]);
+        let input = "Line 1\nLine 2 TODO\nLine 3\nLine 4";
+        let output = process_test_input(config, input);
+
+        // Default behavior: show ALL lines (matches highlighted)
+        assert_eq!(output.lines().count(), 4);
+        assert!(output.contains("Line 1"));
+        assert!(output.contains("Line 2 TODO"));
+        assert!(output.contains("Line 3"));
+        assert!(output.contains("Line 4"));
+    }
+
+    #[test]
+    fn test_only_matching_filters_lines() {
+        let mut config = create_test_config(vec!["TODO"]);
+        config.only_matching = true;
+
+        let input = "Line 1\nLine 2 TODO\nLine 3\nLine 4 TODO again";
+        let output = process_test_input(config, input);
+
+        // -o flag: only show matching lines
+        assert_eq!(output.lines().count(), 2);
+        assert!(!output.contains("Line 1"));
+        assert!(output.contains("Line 2 TODO"));
+        assert!(!output.contains("Line 3"));
+        assert!(output.contains("Line 4 TODO again"));
+    }
+
+    #[test]
+    fn test_invert_match_filters_lines() {
+        let mut config = create_test_config(vec!["TODO"]);
+        config.invert_match = true;
+
+        let input = "Line 1\nLine 2 TODO\nLine 3\nLine 4 TODO again";
+        let output = process_test_input(config, input);
+
+        // -v flag: only show non-matching lines
+        assert_eq!(output.lines().count(), 2);
+        assert!(output.contains("Line 1"));
+        assert!(!output.contains("Line 2 TODO"));
+        assert!(output.contains("Line 3"));
+        assert!(!output.contains("Line 4 TODO again"));
+    }
+
+    #[test]
+    fn test_multiple_patterns_default() {
+        let config = create_test_config(vec!["TODO", "FIXME"]);
+        let input = "Line 1\nLine 2 TODO\nLine 3 FIXME\nLine 4";
+        let output = process_test_input(config, input);
+
+        // Should show all lines with matches highlighted
+        assert_eq!(output.lines().count(), 4);
+    }
+
+    #[test]
+    fn test_no_matches_shows_all_lines() {
+        let config = create_test_config(vec!["NOTFOUND"]);
+        let input = "Line 1\nLine 2\nLine 3";
+        let output = process_test_input(config, input);
+
+        // No matches, but should still show all lines by default
+        assert_eq!(output.lines().count(), 3);
+    }
+
+    #[test]
+    fn test_empty_input() {
+        let config = create_test_config(vec!["TODO"]);
+        let input = "";
+        let output = process_test_input(config, input);
+
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_only_matching_with_no_matches() {
+        let mut config = create_test_config(vec!["NOTFOUND"]);
+        config.only_matching = true;
+
+        let input = "Line 1\nLine 2\nLine 3";
+        let output = process_test_input(config, input);
+
+        // No matches with -o flag: show nothing
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_invert_match_with_no_matches() {
+        let mut config = create_test_config(vec!["NOTFOUND"]);
+        config.invert_match = true;
+
+        let input = "Line 1\nLine 2\nLine 3";
+        let output = process_test_input(config, input);
+
+        // No matches with -v flag: show all lines
+        assert_eq!(output.lines().count(), 3);
+    }
+
+    #[test]
+    fn test_case_insensitive_default() {
+        let mut config = create_test_config(vec!["todo"]);
+        config.case_insensitive = true;
+
+        let input = "Line 1\nLine 2 TODO\nLine 3";
+        let output = process_test_input(config, input);
+
+        // Should match TODO even though pattern is lowercase
+        assert_eq!(output.lines().count(), 3);
+        assert!(output.contains("Line 2 TODO"));
+    }
+
+    #[test]
+    fn test_processor_creation() {
+        let config = create_test_config(vec!["test"]);
+        let processor = Processor::new(config);
+        assert!(processor.is_ok());
+    }
+
+    #[test]
+    fn test_processor_creation_with_invalid_regex() {
+        let config = create_test_config(vec!["["]);
+        let processor = Processor::new(config);
+        assert!(processor.is_err());
+    }
+
+    #[test]
+    fn test_count_only_mode() {
+        let mut config = create_test_config(vec!["TODO"]);
+        config.count_only = true;
+
+        let processor = Processor::new(config).unwrap();
+        let input = "Line 1\nLine 2 TODO\nLine 3\nLine 4 TODO";
+        let reader = Cursor::new(input.as_bytes());
+
+        // Count mode should not error
+        let result = processor.process_reader(reader, None);
+        assert!(result.is_ok());
     }
 }

@@ -16,6 +16,33 @@ Unlike traditional grep which hides non-matching lines, crepe shows you the full
 
 ## Installation
 
+### Download Pre-built Binary
+
+Download the latest release for your platform:
+
+**Linux (amd64)**
+```bash
+curl -L https://github.com/brunoribeiro/crepe/releases/latest/download/crepe-VERSION-linux-amd64 -o crepe
+chmod +x crepe
+sudo mv crepe /usr/local/bin/
+```
+
+**macOS (Apple Silicon/ARM)**
+```bash
+curl -L https://github.com/brunoribeiro/crepe/releases/latest/download/crepe-VERSION-macos-arm64 -o crepe
+chmod +x crepe
+sudo mv crepe /usr/local/bin/
+```
+
+**macOS (Intel)**
+```bash
+curl -L https://github.com/brunoribeiro/crepe/releases/latest/download/crepe-VERSION-macos-intel -o crepe
+chmod +x crepe
+sudo mv crepe /usr/local/bin/
+```
+
+Replace `VERSION` with the latest version number (e.g., `0.1.0`) from the [releases page](https://github.com/brunoribeiro/crepe/releases).
+
 ### From source (requires Rust)
 
 ```bash

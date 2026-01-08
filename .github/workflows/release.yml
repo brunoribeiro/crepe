@@ -100,21 +100,15 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Prepare artifact
+      - name: Rename binary
         run: |
-          cd target/${{ matrix.target }}/release
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            tar czf crepe-${{ needs.version.outputs.version }}-${{ matrix.name }}.tar.gz crepe
-          else
-            tar czf crepe-${{ needs.version.outputs.version }}-${{ matrix.name }}.tar.gz crepe
-          fi
-          mv crepe-${{ needs.version.outputs.version }}-${{ matrix.name }}.tar.gz ../../../
+          cp target/${{ matrix.target }}/release/crepe crepe-${{ needs.version.outputs.version }}-${{ matrix.name }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: crepe-${{ matrix.name }}
-          path: crepe-${{ needs.version.outputs.version }}-${{ matrix.name }}.tar.gz
+          path: crepe-${{ needs.version.outputs.version }}-${{ matrix.name }}
 
   release:
     name: Create Release
@@ -142,8 +136,8 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            artifacts/crepe-linux-amd64/crepe-${{ needs.version.outputs.version }}-linux-amd64.tar.gz
-            artifacts/crepe-macos-intel/crepe-${{ needs.version.outputs.version }}-macos-intel.tar.gz
-            artifacts/crepe-macos-arm64/crepe-${{ needs.version.outputs.version }}-macos-arm64.tar.gz
+            artifacts/crepe-linux-amd64/crepe-${{ needs.version.outputs.version }}-linux-amd64
+            artifacts/crepe-macos-intel/crepe-${{ needs.version.outputs.version }}-macos-intel
+            artifacts/crepe-macos-arm64/crepe-${{ needs.version.outputs.version }}-macos-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

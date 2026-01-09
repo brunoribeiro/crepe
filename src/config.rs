@@ -35,7 +35,6 @@ pub struct Config {
     pub show_filename: bool,
     pub with_filename: bool,
     pub no_filename: bool,
-    pub heading_mode: bool,
 
     // Performance
     pub max_count: Option<usize>,
@@ -74,7 +73,6 @@ impl Default for Config {
             show_filename: false,
             with_filename: false,
             no_filename: false,
-            heading_mode: false,
             max_count: None,
             jobs: None,
             binary: false,

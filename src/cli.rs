@@ -94,10 +94,6 @@ pub struct Cli {
     #[arg(long = "no-filename")]
     pub no_filename: bool,
 
-    /// Group output by filename
-    #[arg(long = "heading")]
-    pub heading: bool,
-
     /// Stop after NUM matches
     #[arg(short = 'm', long = "max-count", value_name = "NUM")]
     pub max_count: Option<usize>,
@@ -166,7 +162,6 @@ impl Cli {
             exclude_patterns: self.exclude,
             with_filename: self.with_filename,
             no_filename: self.no_filename,
-            heading_mode: self.heading,
             max_count: self.max_count,
             jobs: self.jobs,
             binary: self.binary,

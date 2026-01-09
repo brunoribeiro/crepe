@@ -122,57 +122,9 @@ pub struct Cli {
 impl Cli {
     /// Convert CLI arguments to Config
     pub fn into_config(self) -> Result<Config, String> {
-        let mut config = Config::default();
-
-        // Collect patterns from -e flags
-        config.patterns = self.patterns;
-
-        // Files
-        config.files = self.files;
-
-        // Pattern matching options
-        config.case_insensitive = self.ignore_case;
-        config.whole_words = self.word_regexp;
-        config.invert_match = self.invert_match;
-
-        // Display options
-        config.show_line_numbers = self.line_number;
-        config.only_matching = self.only_matching;
-        config.count_only = self.count;
-
-        // Context
-        if let Some(context) = self.context {
-            config.context_before = context;
-            config.context_after = context;
-        } else {
-            config.context_before = self.before_context;
-            config.context_after = self.after_context;
-        }
-
-        // File handling
-        config.recursive = self.recursive;
-        config.follow_symlinks = self.follow;
-        config.hidden = self.hidden;
-        config.max_depth = self.max_depth;
-
-        // File filtering
-        config.include_patterns = self.include;
-        config.exclude_patterns = self.exclude;
-
-        // Output
-        config.with_filename = self.with_filename;
-        config.no_filename = self.no_filename;
-        config.heading_mode = self.heading;
-
-        // Performance
-        config.max_count = self.max_count;
-        config.jobs = self.jobs;
-        config.binary = self.binary;
-
-        // Colors
-        config.no_color = self.no_color;
-        if let Some(color_when) = self.color {
-            config.color_mode = match color_when.to_lowercase().as_str() {
+        // Parse color mode
+        let color_mode = if let Some(color_when) = self.color {
+            match color_when.to_lowercase().as_str() {
                 "always" => ColorMode::Always,
                 "never" => ColorMode::Never,
                 "auto" => ColorMode::Auto,
@@ -182,8 +134,46 @@ impl Cli {
                         color_when
                     ));
                 }
-            };
-        }
+            }
+        } else {
+            ColorMode::Auto
+        };
+
+        // Determine context values
+        let (context_before, context_after) = if let Some(context) = self.context {
+            (context, context)
+        } else {
+            (self.before_context, self.after_context)
+        };
+
+        // Create config with all fields initialized
+        let mut config = Config {
+            patterns: self.patterns,
+            files: self.files,
+            case_insensitive: self.ignore_case,
+            whole_words: self.word_regexp,
+            invert_match: self.invert_match,
+            show_line_numbers: self.line_number,
+            only_matching: self.only_matching,
+            count_only: self.count,
+            context_before,
+            context_after,
+            recursive: self.recursive,
+            follow_symlinks: self.follow,
+            hidden: self.hidden,
+            max_depth: self.max_depth,
+            include_patterns: self.include,
+            exclude_patterns: self.exclude,
+            with_filename: self.with_filename,
+            no_filename: self.no_filename,
+            heading_mode: self.heading,
+            max_count: self.max_count,
+            jobs: self.jobs,
+            binary: self.binary,
+            no_color: self.no_color,
+            color_mode,
+            ..Default::default()
+        };
 
         // Auto-detect filename display
         config.auto_detect_filename_display();

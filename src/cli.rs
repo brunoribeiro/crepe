@@ -8,17 +8,13 @@ use crate::config::{ColorMode, Config};
 #[command(name = "crepe")]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
-    /// Pattern to search for (regex)
-    #[arg(value_name = "PATTERN")]
-    pub pattern: Option<String>,
+    /// Pattern to search for (regex) - use -e for each pattern
+    #[arg(short = 'e', long = "regexp", value_name = "PATTERN", required = true)]
+    pub patterns: Vec<String>,
 
     /// Files to search (or stdin if not specified)
     #[arg(value_name = "FILE")]
     pub files: Vec<PathBuf>,
-
-    /// Additional patterns to search for
-    #[arg(short = 'e', long = "regexp", value_name = "PATTERN")]
-    pub patterns: Vec<String>,
 
     /// Case-insensitive matching
     #[arg(short = 'i', long = "ignore-case")]
@@ -128,15 +124,8 @@ impl Cli {
     pub fn into_config(self) -> Result<Config, String> {
         let mut config = Config::default();
 
-        // Collect patterns
-        if let Some(pattern) = self.pattern {
-            config.patterns.push(pattern);
-        }
-        config.patterns.extend(self.patterns);
-
-        if config.patterns.is_empty() {
-            return Err("No pattern specified. Use PATTERN or -e PATTERN.".to_string());
-        }
+        // Collect patterns from -e flags
+        config.patterns = self.patterns;
 
         // Files
         config.files = self.files;

@@ -56,7 +56,7 @@ The `crepe` binary will be installed to `~/.cargo/bin/`.
 ### Quick test without installing
 
 ```bash
-cargo run -- [OPTIONS] PATTERN [FILE...]
+cargo run -- [OPTIONS] -e PATTERN [FILE...]
 ```
 
 ## Usage
@@ -65,57 +65,57 @@ cargo run -- [OPTIONS] PATTERN [FILE...]
 
 ```bash
 # Highlight all occurrences of "error" in a file
-crepe "error" app.log
+crepe -e "error" app.log
 
 # Case-insensitive search
-crepe -i "warning" app.log
+crepe -i -e "warning" app.log
 
 # Multiple patterns with different colors
 crepe -e TODO -e FIXME -e HACK src/
 
 # Search recursively through a directory
-crepe -r "function" src/
+crepe -r -e "function" src/
 ```
 
 ### Advanced Examples
 
 ```bash
 # Show line numbers and 2 lines of context
-crepe -n -C 2 "fn main" src/
+crepe -n -C 2 -e "fn main" src/
 
 # Count matches in all Rust files
-crepe -r -c --include "*.rs" "struct" .
+crepe -r -c --include "*.rs" -e "struct" .
 
 # Search hidden files, exclude node_modules
-crepe -r --hidden --exclude "node_modules/*" "import" .
+crepe -r --hidden --exclude "node_modules/*" -e "import" .
 
 # Only show the matched parts (not full lines)
-crepe -o "\d+\.\d+\.\d+" CHANGELOG.md
+crepe -o -e "\d+\.\d+\.\d+" CHANGELOG.md
 
 # Show lines that DON'T match the pattern
-crepe -v "debug" app.log
+crepe -v -e "debug" app.log
 
 # Match whole words only
-crepe -w "cat" file.txt  # matches "cat" but not "concatenate"
+crepe -w -e "cat" file.txt  # matches "cat" but not "concatenate"
 
 # Limit to first 10 matches
-crepe -m 10 "error" large-file.log
+crepe -m 10 -e "error" large-file.log
 ```
 
 ### Regex Examples
 
 ```bash
 # Email addresses
-crepe "\w+@\w+\.\w+" contacts.txt
+crepe -e "\w+@\w+\.\w+" contacts.txt
 
 # IP addresses
-crepe "\d+\.\d+\.\d+\.\d+" server.log
+crepe -e "\d+\.\d+\.\d+\.\d+" server.log
 
 # Function definitions in JavaScript
-crepe "function \w+\(" src/*.js
+crepe -e "function \w+\(" src/*.js
 
 # Hexadecimal colors
-crepe "#[0-9a-fA-F]{6}" styles.css
+crepe -e "#[0-9a-fA-F]{6}" styles.css
 ```
 
 ## Command-Line Options
@@ -207,7 +207,7 @@ After 12 patterns, colors cycle back to the beginning.
 cargo test
 
 # Run with debug output
-cargo run -- pattern file
+cargo run -- -e pattern file
 
 # Build release version
 cargo build --release
@@ -236,13 +236,13 @@ crepe -r -n -e TODO -e FIXME -e HACK src/
 ### Configuration Review
 ```bash
 # Find all uncommented lines in a config file
-crepe -v "^#" config.conf
+crepe -v -e "^#" config.conf
 ```
 
 ### Data Extraction
 ```bash
 # Extract all URLs from a file
-crepe -o "https?://[^\s]+" document.txt
+crepe -o -e "https?://[^\s]+" document.txt
 ```
 
 ## Built By
